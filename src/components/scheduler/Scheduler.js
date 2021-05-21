@@ -1,15 +1,50 @@
-/* eslint-disable */
-/*{ { src / components / Scheduler / Scheduler.js } }*/
-import React, { Component } from 'react';
+import React, { useState, useEffect, Component } from 'react'
 import 'dhtmlx-scheduler';
 import 'dhtmlx-scheduler/codebase/dhtmlxscheduler_material.css';
+import 'dhtmlx-scheduler/codebase/dhtmlxscheduler_terrace.css';
+
 import './Scheduler.css';
+
 
 const scheduler = window.scheduler;
 
 export default class Scheduler extends Component {
+
+    initSchedulerEvents() {
+        if (scheduler._$initialized) {
+            return;
+        }
+        const onDataUpdated = this.props.onDataUpdated;
+
+        scheduler.attachEvent('onEventAdded', (id, ev) => {
+            if (onDataUpdated) {
+                onDataUpdated('created', ev, id)
+                var calEvents = {events: scheduler.getEvents()}
+                window.localStorage.setItem('events',JSON.stringify(calEvents))
+            }
+        });
+
+        scheduler.attachEvent('onEventChanged', (id, ev) => {
+            if (onDataUpdated) {
+                onDataUpdated('updated', ev, id);
+                var calEvents = {events: scheduler.getEvents()}
+                window.localStorage.setItem('events',JSON.stringify(calEvents))
+            }
+        });
+
+        scheduler.attachEvent('onEventDeleted', (id, ev) => {
+            if (onDataUpdated) {
+                onDataUpdated('deleted', ev, id);
+                var calEvents = {events: scheduler.getEvents()}
+                window.localStorage.setItem('events',JSON.stringify(calEvents))
+            }
+        });
+        scheduler._$initialized = true;
+
+    }
+
     componentDidMount() {
-        scheduler.skin = 'material';
+        scheduler.skin = 'terrace';
         scheduler.config.header = [
             'day',
             'week',
@@ -20,10 +55,24 @@ export default class Scheduler extends Component {
             'next'
         ];
 
+        this.initSchedulerEvents();
+
         const { events } = this.props;
-        scheduler.init(this.schedulerContainer, new Date(2021, 5, 14));
-        scheduler.clearAll();
-        scheduler.parse(events);
+        scheduler.init(this.schedulerContainer, Date.now());
+       
+        var bleh = JSON.parse(window.localStorage.getItem('events'));
+
+        if (bleh){
+            scheduler.parse(bleh.events);
+             console.log(scheduler.getEvents());
+            var calEvents = {events: scheduler.getEvents()}
+            window.localStorage.setItem('events',JSON.stringify(calEvents))
+        } else {
+            scheduler.parse(events);
+            var calEvents = {events: scheduler.getEvents()}
+            window.localStorage.setItem('events',JSON.stringify(calEvents))
+        }
+        
     }
 
     render() {
